@@ -27,6 +27,7 @@ impl Component for Model {
     fn view(&self) -> Html {
         html! {
             <div>
+                <a href={"https://github.com/gussmith23/glenside"}>{"Github repo"}</a>
                 <nav class="menu">
                     <button onclick=self.link.callback(|_| ())>
                         { "Increment" }
