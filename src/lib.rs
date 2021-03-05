@@ -1,6 +1,7 @@
 #![recursion_limit = "256"]
 
-use yew::{html, Component, ComponentLink, Html, ShouldRender};
+use wasm_bindgen::prelude::*;
+use yew::{html, App, Component, ComponentLink, Html, ShouldRender};
 
 pub struct Model {
     link: ComponentLink<Self>,
@@ -15,7 +16,7 @@ impl Component for Model {
         Self { link, value: 0 }
     }
 
-    fn update(&mut self, msg: Self::Message) -> ShouldRender {
+    fn update(&mut self, _msg: Self::Message) -> ShouldRender {
         false
     }
 
@@ -41,4 +42,9 @@ impl Component for Model {
             </div>
         }
     }
+}
+
+#[wasm_bindgen(start)]
+pub fn run_app() {
+    App::<Model>::new().mount_to_body();
 }
