@@ -17,11 +17,17 @@ jobs:
       - name: wasm-pack-action
         uses: jetli/wasm-pack-action@v0.3.0
 
+      - name: Install latest nightly
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: nightly
+            default: true
+            
+      - run: cargo install wasm-pack
+      
       - run: wasm-pack build
       
       - uses: JamesIves/github-pages-deploy-action@4.1.0
         with:
           branch: gh-pages # The branch the action should deploy to.
           folder: pkg # The folder the action should deploy.
-
-
