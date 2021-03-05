@@ -13,9 +13,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      
-      - name: wasm-pack-action
-        uses: jetli/wasm-pack-action@v0.3.0
 
       - name: Install latest nightly
         uses: actions-rs/toolchain@v1
