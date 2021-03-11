@@ -16,5 +16,5 @@ wasm-bindgen = "0.2.71"
 
 [dependencies.glenside]
 git = "https://github.com/gussmith23/glenside"
-rev = "bf1aa3a"
+rev = "7e08855"
 default-features = false

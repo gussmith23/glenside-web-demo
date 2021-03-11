@@ -224,7 +224,7 @@ dependencies = [
 [[package]]
 name = "glenside"
 version = "0.1.0"
-source = "git+https://github.com/gussmith23/glenside?rev=bf1aa3a#bf1aa3a96f4581f03f73da67c03d9e2a1a82004d"
+source = "git+https://github.com/gussmith23/glenside?rev=7e08855#7e088558b21400374d09d0a02bde9d003fa57b4b"
 dependencies = [
  "approx",
  "egg",
