@@ -1,23 +1,85 @@
-#![recursion_limit = "256"]
-
+use monaco::{
+    api::CodeEditorOptions,
+    sys::editor::BuiltinTheme,
+    yew::{CodeEditor, CodeEditorLink},
+};
+use ndarray::Dimension;
+use std::{collections::HashMap, rc::Rc};
 use wasm_bindgen::prelude::*;
-use yew::{html, App, Component, ComponentLink, Html, ShouldRender};
+use yew::{html, Component, ComponentLink, Html, ShouldRender};
 
-pub struct Model {
-    link: ComponentLink<Self>,
-    value: usize,
+fn get_options() -> CodeEditorOptions {
+    CodeEditorOptions::default()
+        .with_new_dimension(500, 500)
+        .with_builtin_theme(BuiltinTheme::VsDark)
 }
 
-impl Component for Model {
-    type Message = ();
+enum Message {
+    NewInput,
+}
+
+struct App {
+    options: Rc<CodeEditorOptions>,
+    link: ComponentLink<Self>,
+    code_editor_link: CodeEditorLink,
+    result_text: String,
+}
+impl Component for App {
+    type Message = Message;
     type Properties = ();
 
     fn create(_props: Self::Properties, link: ComponentLink<Self>) -> Self {
-        Self { link, value: 0 }
+        Self {
+            options: Rc::new(get_options()),
+            link: link,
+            code_editor_link: CodeEditorLink::default(),
+            result_text: String::default(),
+        }
     }
 
-    fn update(&mut self, _msg: Self::Message) -> ShouldRender {
-        false
+    fn update(&mut self, msg: Self::Message) -> ShouldRender {
+        match msg {
+            Message::NewInput => {
+                let text_input = self
+                    .code_editor_link
+                    .with_editor(|editor| editor.get_model().unwrap().get_value())
+                    .unwrap();
+
+                let result = glenside::language::interpreter::interpret_from_str::<f64>(
+                    &text_input,
+                    &HashMap::new(),
+                );
+
+                let text_output = match result {
+                    glenside::language::interpreter::Value::Tensor(_) => todo!(),
+                    glenside::language::interpreter::Value::Access(_) => todo!(),
+                    glenside::language::interpreter::Value::Usize(_) => todo!(),
+                    glenside::language::interpreter::Value::Shape(_) => todo!(),
+                    glenside::language::interpreter::Value::ComputeType(_) => todo!(),
+                    glenside::language::interpreter::Value::PadType(_) => todo!(),
+                    glenside::language::interpreter::Value::AccessShape(shape, access_axis) => {
+                        format!(
+                            "(({a}), ({b}))",
+                            a = shape.slice()[..access_axis]
+                                .iter()
+                                .map(|i| i.to_string())
+                                .collect::<Vec<_>>()
+                                .join(", "),
+                            b = shape.slice()[access_axis..]
+                                .iter()
+                                .map(|i| i.to_string())
+                                .collect::<Vec<_>>()
+                                .join(", ")
+                        )
+                    }
+                    glenside::language::interpreter::Value::List(_) => todo!(),
+                };
+
+                self.result_text = text_output;
+
+                true
+            }
+        }
     }
 
     fn change(&mut self, _props: Self::Properties) -> ShouldRender {
@@ -27,25 +89,15 @@ impl Component for Model {
     fn view(&self) -> Html {
         html! {
             <div>
-                <a href={"https://github.com/gussmith23/glenside"}>{"Github repo"}</a>
-                <nav class="menu">
-                    <button onclick=self.link.callback(|_| ())>
-                        { "Increment" }
-                    </button>
-                    <button onclick=self.link.callback(|_| ())>
-                        { "Decrement" }
-                    </button>
-                </nav>
-                <p>
-                    <b>{ "Current value: " }</b>
-                    { self.value }
-                </p>
+                <CodeEditor link=&self.code_editor_link, options=Rc::clone(&self.options) />
+                <input type={"button"} value={"run"} onclick=self.link.callback(|_| Message::NewInput) />
+                <input type={"text"} id={"output"} readonly={true} value={self.result_text.clone()} />
             </div>
         }
     }
 }
 
 #[wasm_bindgen(start)]
-pub fn run_app() {
-    App::<Model>::new().mount_to_body();
+pub fn start_app() {
+    yew::start_app::<App>();
 }

@@ -224,7 +224,7 @@ dependencies = [
 [[package]]
 name = "glenside"
 version = "0.1.0"
-source = "git+https://github.com/gussmith23/glenside?rev=7e08855#7e088558b21400374d09d0a02bde9d003fa57b4b"
+source = "git+https://github.com/gussmith23/glenside?rev=514a8c3#514a8c399e27124361adc71f679e990adc6a0f9c"
 dependencies = [
  "approx",
  "egg",
@@ -244,7 +244,10 @@ name = "glenside-web-demo"
 version = "0.1.0"
 dependencies = [
  "glenside",
+ "monaco",
+ "ndarray",
  "wasm-bindgen",
+ "web-sys",
  "yew",
 ]
 
@@ -399,6 +402,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ee1c47aaa256ecabcaea351eae4a9b01ef39ed810004e298d2511ed284b1525"
 
 [[package]]
+name = "monaco"
+version = "0.1.0"
+source = "git+https://github.com/siku2/rust-monaco?rev=97ab515#97ab5155dd0043843434982922b78bb5fea328fa"
+dependencies = [
+ "js-sys",
+ "paste",
+ "wasm-bindgen",
+ "web-sys",
+ "yew",
+]
+
+[[package]]
 name = "ndarray"
 version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -455,6 +470,12 @@ checksum = "766f840da25490628d8e63e529cd21c014f6600c6b8517add12a6fa6167a6218"
 dependencies = [
  "num-traits",
 ]
+
+[[package]]
+name = "paste"
+version = "1.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "acbf547ad0c65e31259204bd90935776d1c693cec2f4ff7abb7a1bbbd40dfe58"
 
 [[package]]
 name = "pin-project-lite"
