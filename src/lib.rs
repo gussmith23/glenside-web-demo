@@ -7,9 +7,13 @@ use monaco::{
     yew::{CodeEditor, CodeEditorLink},
 };
 use ndarray::{ArrayD, Dimension};
+use rand::{
+    distributions::{Distribution, Uniform},
+    rngs::OsRng,
+};
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
-use yew::{html, Component, ComponentLink, Html, InputData, Properties, ShouldRender};
+use yew::{html, html_nested, Component, ComponentLink, Html, InputData, Properties, ShouldRender};
 
 fn get_options() -> CodeEditorOptions {
     CodeEditorOptions::default()
@@ -20,6 +24,7 @@ fn get_options() -> CodeEditorOptions {
 enum Message {
     NewInput,
     EnvironmentValueUpdated(String, ArrayD<f64>),
+    AddNewEnvironmentInput,
 }
 
 struct App {
@@ -28,6 +33,7 @@ struct App {
     code_editor_link: CodeEditorLink,
     result_text: String,
     environment: Environment<'static, f64>,
+    num_environment_inputs: usize,
 }
 impl Component for App {
     type Message = Message;
@@ -40,11 +46,16 @@ impl Component for App {
             code_editor_link: CodeEditorLink::default(),
             result_text: String::default(),
             environment: Environment::default(),
+            num_environment_inputs: 0,
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
+            Message::AddNewEnvironmentInput => {
+                self.num_environment_inputs += 1;
+                true
+            }
             Message::EnvironmentValueUpdated(name, value) => {
                 let name = Box::leak(name.into_boxed_str());
                 self.environment.insert(name, value);
@@ -117,9 +128,18 @@ impl Component for App {
     fn view(&self) -> Html {
         html! {
             <div>
-                <GeneratedTensorEnvironmentInput value_updated_callback=self.link.callback(|(name, value)| {
-                    Message::EnvironmentValueUpdated(name, value)
-                }) />
+                <input type={"button"} value={"+"} onclick=self.link.callback(|_| Message::AddNewEnvironmentInput) />
+                {
+                    for (0..self.num_environment_inputs).map(|i| {
+                        html_nested!{
+                            <GeneratedTensorEnvironmentInput
+                                id={i}
+                                value_updated_callback=self.link.callback(|(name, value)| {
+                                    Message::EnvironmentValueUpdated(name, value)
+                                }) />
+                        }
+                    })
+                }
                 <CodeEditor link=&self.code_editor_link, options=Rc::clone(&self.options) />
                 <input type={"button"} value={"run"} onclick=self.link.callback(|_| Message::NewInput) />
                 <textarea readonly={true}>{self.result_text.clone()}</textarea>
@@ -131,6 +151,9 @@ impl Component for App {
 #[derive(Properties, Clone)]
 struct EnvironmentInputProps {
     value_updated_callback: yew::Callback<(String, ArrayD<f64>)>,
+    /// Unique id identifying this input in a list of inputs. Currently only
+    /// used so that we can make the names of the radio button groups unique.
+    id: usize,
 }
 
 struct GeneratedTensorEnvironmentInput {
@@ -169,7 +192,12 @@ impl GeneratedTensorEnvironmentInput {
             Some(ValueGenerationStrategy::Ones) => {
                 Some((self.name.clone(), ndarray::ArrayD::ones(shape)))
             }
-            Some(ValueGenerationStrategy::Random) => todo!(),
+            Some(ValueGenerationStrategy::Random) => Some((
+                self.name.clone(),
+                ndarray::ArrayD::from_shape_fn(shape, |_| {
+                    Uniform::new(-2.0, 2.0).sample(&mut OsRng::new().unwrap())
+                }),
+            )),
             None => None,
         }
     }
@@ -238,7 +266,9 @@ impl Component for GeneratedTensorEnvironmentInput {
                 />
 
                 // Value generation radio buttons
-                <input type={"radio"} id={"random"} name={"values"}
+                <input type={"radio"}
+                    id={format!("random-{}", self.properties.id)}
+                    name={format!("values-{}", self.properties.id)}
                     checked={match self.value_generation_strategy {
                         Some(ValueGenerationStrategy::Random) => true,
                         _ => false,
@@ -248,8 +278,11 @@ impl Component for GeneratedTensorEnvironmentInput {
                             ValueGenerationStrategy::Random
                         ))
                 />
-                <label for={"random"}>{"random"}</label>
-                <input type={"radio"} id={"zeros"} name={"values"}
+                <label for={format!("random-{}", self.properties.id)}>{"random"}</label>
+
+                <input type={"radio"}
+                    id={format!("zeros-{}", self.properties.id)}
+                    name={format!("values-{}", self.properties.id)}
                     checked={match self.value_generation_strategy {
                         Some(ValueGenerationStrategy::Zeros) => true,
                         _ => false,
@@ -259,8 +292,11 @@ impl Component for GeneratedTensorEnvironmentInput {
                             ValueGenerationStrategy::Zeros
                         ))
                 />
-                <label for={"zeros"}>{"zeros"}</label>
-                <input type={"radio"} id={"ones"} name={"values"}
+                <label for={format!("zeros-{}", self.properties.id)}>{"zeros"}</label>
+
+                <input type={"radio"}
+                    id={format!("ones-{}", self.properties.id)}
+                    name={format!("values-{}", self.properties.id)}
                     checked={match self.value_generation_strategy {
                         Some(ValueGenerationStrategy::Ones) => true,
                         _ => false,
@@ -270,7 +306,7 @@ impl Component for GeneratedTensorEnvironmentInput {
                             ValueGenerationStrategy::Ones
                         ))
                 />
-                <label for={"ones"}>{"ones"}</label>
+                <label for={format!("ones-{}", self.properties.id)}>{"ones"}</label>
 
                 <input
                     type={"checkbox"}
