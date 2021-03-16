@@ -166,17 +166,31 @@ struct GeneratedTensorEnvironmentInput {
 
 impl GeneratedTensorEnvironmentInput {
     fn get_value(&self) -> Option<(String, ArrayD<f64>)> {
-        let parse_results = self
-            .shape_string
-            .trim_start_matches(" ")
-            .trim_start_matches("(")
-            .trim_end_matches(" ")
-            .trim_end_matches(")")
-            .split(",")
-            .map(|s| s.parse::<usize>())
-            .collect::<Vec<_>>();
+        // First and last characters should be parens.
+        if self.shape_string.is_empty()
+            || self.shape_string.chars().nth(0).unwrap() != '('
+            || self
+                .shape_string
+                .chars()
+                .nth(self.shape_string.len() - 1)
+                .unwrap()
+                != ')'
+        {
+            return None;
+        }
 
-        if parse_results.iter().any(|r| r.is_err()) {
+        let parens_trimmed = &self.shape_string[1..self.shape_string.len() - 1];
+
+        let parse_results = if parens_trimmed.is_empty() {
+            vec![]
+        } else {
+            parens_trimmed
+                .split(",")
+                .map(|s| s.parse::<usize>())
+                .collect::<Vec<_>>()
+        };
+
+        if !parse_results.is_empty() && parse_results.iter().any(|r| r.is_err()) {
             return None;
         }
 
@@ -322,5 +336,6 @@ impl Component for GeneratedTensorEnvironmentInput {
 
 #[wasm_bindgen(start)]
 pub fn start_app() {
+    wasm_logger::init(wasm_logger::Config::default());
     yew::start_app::<App>();
 }
