@@ -272,7 +272,7 @@ impl Component for GeneratedTensorEnvironmentInput {
                     |event: InputData| GeneratedTensorEnvironmentInputMessage::UpdateName(event.value)) />
 
                 // Shape text box
-                <label for={"shape"}>{"Shape (e.g. () or (3, 32, 32))"}</label>
+                <label for={"shape"}>{"Shape (e.g. () or (3,32,32))"}</label>
                 <input name={"shape"} type={"text"}
                     oninput=self.link.callback(|event: InputData| {
                         GeneratedTensorEnvironmentInputMessage::UpdateShapeString(event.value)
