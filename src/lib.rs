@@ -1,16 +1,18 @@
 #![recursion_limit = "1024"]
 
 use glenside::language::interpreter::Environment;
+use lazy_static::lazy_static;
 use monaco::{
     api::CodeEditorOptions,
     sys::editor::BuiltinTheme,
     yew::{CodeEditor, CodeEditorLink},
 };
-use ndarray::{ArrayD, Dimension};
+use ndarray::{ArrayD, Dimension, IxDyn};
 use rand::{
     distributions::{Distribution, Uniform},
     rngs::OsRng,
 };
+use std::collections::HashMap;
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use yew::{html, html_nested, Component, ComponentLink, Html, InputData, Properties, ShouldRender};
@@ -19,6 +21,63 @@ fn get_options() -> CodeEditorOptions {
     CodeEditorOptions::default()
         .with_new_dimension(500, 500)
         .with_builtin_theme(BuiltinTheme::VsDark)
+}
+
+struct Example<'a> {
+    name: &'a str,
+    description: &'a str,
+    glenside_source: &'a str,
+    environment: Environment<'a, f64>,
+}
+
+lazy_static! {
+    static ref CONV: Example<'static> = Example {
+        name: "2D Convolution",
+        description: "",
+        glenside_source: r#"
+(access-transpose
+ (compute dot-product
+  (access-cartesian-product
+   (access (access-tensor weights) 1)
+   (access
+    (access-squeeze
+     (access-squeeze
+      (access-windows
+       (access
+        (access-pad
+         (access-pad
+          (access-tensor activations)
+          zero-padding 2 1 1)
+         zero-padding 3 1 1)
+        4)
+       (shape 1 3 3 3)
+       (shape 1 1 1 1))
+      4)
+     1)
+    3)))
+ (list 1 0 2 3))
+"#,
+        environment: {
+            let mut env = HashMap::new();
+            env.insert(
+                "activations",
+                ArrayD::from_shape_fn(IxDyn(&[1, 3, 32, 32]), |_| {
+                    Uniform::new(-2.0, 2.0).sample(&mut OsRng::new().unwrap())
+                }),
+            );
+            env.insert(
+                "weights",
+                ArrayD::from_shape_fn(IxDyn(&[8, 3, 3, 3]), |_| {
+                    Uniform::new(-2.0, 2.0).sample(&mut OsRng::new().unwrap())
+                }),
+            );
+            env
+        },
+    };
+}
+
+lazy_static! {
+    static ref EXAMPLES: Vec<&'static Example<'static>> = vec![&CONV];
 }
 
 enum Message {

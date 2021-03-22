@@ -19,7 +19,7 @@ ndarray = "0.13.0"
 rand = { version = "0.6", default-features = false, features = ['wasm-bindgen'] }
 log = "0.4.6"
 wasm-logger = "0.2.0"
-
+lazy_static = "1.4.0"
 
 [dependencies.glenside]
 git = "https://github.com/gussmith23/glenside"

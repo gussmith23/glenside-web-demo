@@ -271,6 +271,7 @@ name = "glenside-web-demo"
 version = "0.1.0"
 dependencies = [
  "glenside",
+ "lazy_static",
  "log",
  "monaco",
  "ndarray",
