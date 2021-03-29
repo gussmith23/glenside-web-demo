@@ -84,6 +84,7 @@ enum Message {
     NewInput,
     EnvironmentValueUpdated(String, ArrayD<f64>),
     AddNewEnvironmentInput,
+    ExampleSelected(Option<usize>),
 }
 
 struct App {
@@ -93,6 +94,7 @@ struct App {
     result_text: String,
     environment: Environment<'static, f64>,
     num_environment_inputs: usize,
+    input: String,
 }
 impl Component for App {
     type Message = Message;
@@ -106,6 +108,7 @@ impl Component for App {
             result_text: String::default(),
             environment: Environment::default(),
             num_environment_inputs: 0,
+            input: String::default(),
         }
     }
 
@@ -177,16 +180,35 @@ impl Component for App {
 
                 true
             }
+            Message::ExampleSelected(None) => {
+                // Restore previous input
+                self.options = Rc::new(get_options().with_value(self.input.clone()));
+                true
+            }
+            Message::ExampleSelected(Some(i)) => {
+                // Save current input
+                self.input = self
+                    .code_editor_link
+                    .with_editor(|editor| editor.get_model().unwrap().get_value())
+                    .unwrap();
+
+                // Initialize with EXAMPLE[i]
+                self.options =
+                    Rc::new(get_options().with_value(EXAMPLES[i].glenside_source.to_string()));
+
+                true
+            }
         }
     }
 
     fn change(&mut self, _props: Self::Properties) -> ShouldRender {
-        false
+        unreachable!()
     }
 
     fn view(&self) -> Html {
         html! {
             <div>
+                <ExampleChooser example_chosen_callback=self.link.callback(|i| Message::ExampleSelected(i)) />
                 <input type={"button"} value={"+"} onclick=self.link.callback(|_| Message::AddNewEnvironmentInput) />
                 {
                     for (0..self.num_environment_inputs).map(|i| {
@@ -202,6 +224,201 @@ impl Component for App {
                 <CodeEditor link=&self.code_editor_link, options=Rc::clone(&self.options) />
                 <input type={"button"} value={"run"} onclick=self.link.callback(|_| Message::NewInput) />
                 <textarea readonly={true}>{self.result_text.clone()}</textarea>
+            </div>
+        }
+    }
+}
+
+#[derive(Properties, Clone)]
+struct ExampleChooserProperties {
+    example_chosen_callback: yew::Callback<Option<usize>>,
+}
+struct ExampleChooser {
+    link: ComponentLink<Self>,
+    properties: ExampleChooserProperties,
+    /// The index into [`EXAMPLES`] of the currently selected example.
+    selected_example_index: Option<usize>,
+}
+
+enum ExampleChooserMessage {
+    Chosen(Option<usize>),
+}
+
+impl Component for ExampleChooser {
+    type Message = ExampleChooserMessage;
+    type Properties = ExampleChooserProperties;
+
+    fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
+        Self {
+            link,
+            properties: props,
+            selected_example_index: None,
+        }
+    }
+
+    fn update(&mut self, msg: Self::Message) -> ShouldRender {
+        match msg {
+            ExampleChooserMessage::Chosen(i) => {
+                // Did the selection change?
+                let changed = i != self.selected_example_index;
+
+                self.selected_example_index = i;
+                self.properties.example_chosen_callback.emit(i);
+
+                changed
+            }
+        }
+    }
+
+    fn change(&mut self, props: Self::Properties) -> ShouldRender {
+        self.properties = props;
+        true
+    }
+
+    fn view(&self) -> Html {
+        html! {
+            <div>
+            {"Choose an example:"}
+
+            <input type={"radio"}
+                id={"no-example"}
+                name={"example-chooser"}
+                checked={self.selected_example_index.is_none()}
+                oninput=self.link.callback(move |_| ExampleChooserMessage::Chosen(None))
+            />
+            <label for={"no-example"}>{"none"}</label>
+
+            {
+                for EXAMPLES.iter().enumerate().map(|(i, example)| {
+                    html_nested ! {
+                        <>
+                        <input type={"radio"}
+                            id={format!("example-radio-button-{}", i)}
+                            name={"example-chooser"}
+                            checked={self.selected_example_index==Some(i)}
+                            oninput=self.link.callback(move |_| ExampleChooserMessage::Chosen(Some(i)))
+                            />
+                        <label
+                            for={format!("example-radio-button-{}", i)}>
+                            {example.name}
+                        </label>
+                        </>
+                    }
+                })
+            }
+
+
+            </div>
+        }
+    }
+}
+
+struct EnvironmentInputs {
+    props: EnvironmentInputsProps,
+    link: ComponentLink<Self>,
+    num_environment_inputs: usize,
+}
+
+#[derive(Properties, Clone)]
+struct EnvironmentInputsProps {
+    /// The callback to the parent, which should be called when any of the
+    /// environment inputs change.
+    value_updated_callback: yew::Callback<(String, ArrayD<f64>)>,
+    /// A pre-set environment that this set of inputs should produce.
+    environment: Option<Environment<'static, f64>>,
+}
+
+enum EnvironmentInputsMessage {
+    Add,
+}
+
+impl Component for EnvironmentInputs {
+    type Message = EnvironmentInputsMessage;
+    type Properties = EnvironmentInputsProps;
+
+    fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
+        Self {
+            props,
+            link,
+            num_environment_inputs: 0,
+        }
+    }
+
+    fn update(&mut self, msg: EnvironmentInputsMessage) -> ShouldRender {
+        match msg {
+            EnvironmentInputsMessage::Add => todo!(),
+        }
+    }
+
+    fn change(&mut self, _props: Self::Properties) -> ShouldRender {
+        todo!()
+    }
+
+    fn view(&self) -> Html {
+        html! {
+            <div>
+                // Button to instantiate inputs
+                <input type={"button"} value={"+"} onclick=self.link.callback(|_| EnvironmentInputsMessage::Add) />
+
+                // Pre-set inputs
+                {
+                    for self.props.environment.as_ref().map(|e| e.iter().map(|(name, value)| {
+                        html_nested!{
+                            <PreSetInput
+                                name=name.clone()
+                                value=value.clone() />
+                        }
+                    }).collect::<Vec<_>>()).unwrap_or_default()
+                }
+                {
+                    for (0..self.num_environment_inputs).map(|i| {
+                        html_nested!{
+                            <GeneratedTensorEnvironmentInput
+                                id={i}
+                                value_updated_callback=self.props.value_updated_callback.clone() />
+                        }
+                    })
+                }
+            </div>
+        }
+    }
+}
+
+struct PreSetInput(PreSetInputProperties);
+
+#[derive(Properties, Clone)]
+struct PreSetInputProperties {
+    name: String,
+    value: ArrayD<f64>,
+}
+
+impl Component for PreSetInput {
+    type Message = ();
+    type Properties = PreSetInputProperties;
+
+    fn create(props: Self::Properties, _link: ComponentLink<Self>) -> Self {
+        Self(props)
+    }
+
+    fn update(&mut self, _msg: Self::Message) -> ShouldRender {
+        unreachable!()
+    }
+
+    fn change(&mut self, props: Self::Properties) -> ShouldRender {
+        self.0 = props;
+        true
+    }
+
+    fn view(&self) -> Html {
+        html! {
+            <div>
+                <label for={"name"}>{"Name"}</label>
+                <input name={"name"} type={"text"} value={ &self.0.name } />
+
+                // Shape text box
+                <label for={"shape"}>{"Shape"}</label>
+                <input name={"shape"} type={"text"}
+                  value={ format!("({})", self.0.value.shape().iter().map(std::string::ToString::to_string).collect::<Vec<_>>().join(",")) }/>
             </div>
         }
     }
