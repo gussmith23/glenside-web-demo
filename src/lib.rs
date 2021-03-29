@@ -223,6 +223,7 @@ impl Component for App {
                 }
                 <CodeEditor link=&self.code_editor_link, options=Rc::clone(&self.options) />
                 <input type={"button"} value={"run"} onclick=self.link.callback(|_| Message::NewInput) />
+                <br/>
                 <textarea readonly={true}>{self.result_text.clone()}</textarea>
             </div>
         }
