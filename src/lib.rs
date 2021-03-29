@@ -94,7 +94,16 @@ struct App {
     result_text: String,
     environment: Environment<'static, f64>,
     num_environment_inputs: usize,
-    input: String,
+    /// Stores whatever the user has typed into the editor. Used when switching
+    /// back and forth between examples, so we can save/restore whatever the
+    /// user has typed.
+    user_editor_state: String,
+    /// Stores whatever environment the user has entered. Used when switching
+    /// back and forth between examples, so that we can save/restore the user's
+    /// environment.
+    user_environment_state: Environment<'static, f64>,
+    pre_set_environment: Option<Environment<'static, f64>>,
+    example_selected: Option<usize>,
 }
 impl Component for App {
     type Message = Message;
@@ -108,7 +117,10 @@ impl Component for App {
             result_text: String::default(),
             environment: Environment::default(),
             num_environment_inputs: 0,
-            input: String::default(),
+            user_editor_state: String::default(),
+            user_environment_state: Environment::default(),
+            pre_set_environment: None,
+            example_selected: None,
         }
     }
 
@@ -120,6 +132,7 @@ impl Component for App {
             }
             Message::EnvironmentValueUpdated(name, value) => {
                 let name = Box::leak(name.into_boxed_str());
+                self.user_environment_state.insert(name, value.clone());
                 self.environment.insert(name, value);
                 false
             }
@@ -181,20 +194,36 @@ impl Component for App {
                 true
             }
             Message::ExampleSelected(None) => {
+                self.example_selected = None;
+
                 // Restore previous input
-                self.options = Rc::new(get_options().with_value(self.input.clone()));
+                self.options = Rc::new(get_options().with_value(self.user_editor_state.clone()));
+
+                // Restore previous environment
+                self.environment = self.user_environment_state.clone();
+
+                self.pre_set_environment = None;
+
                 true
             }
             Message::ExampleSelected(Some(i)) => {
+                self.example_selected = Some(i);
+
                 // Save current input
-                self.input = self
+                self.user_editor_state = self
                     .code_editor_link
                     .with_editor(|editor| editor.get_model().unwrap().get_value())
                     .unwrap();
 
-                // Initialize with EXAMPLE[i]
+                // Initialize with EXAMPLE[i] Glenside source code
                 self.options =
                     Rc::new(get_options().with_value(EXAMPLES[i].glenside_source.to_string()));
+
+                // Take the environment from EXAMPLE[i]
+                self.environment = EXAMPLES[i].environment.clone();
+
+                // TODO(@gussmith23) This is super clunky, so much duplicated state.
+                self.pre_set_environment = Some(EXAMPLES[i].environment.clone());
 
                 true
             }
@@ -209,19 +238,15 @@ impl Component for App {
         html! {
             <div>
                 <ExampleChooser example_chosen_callback=self.link.callback(|i| Message::ExampleSelected(i)) />
-                <input type={"button"} value={"+"} onclick=self.link.callback(|_| Message::AddNewEnvironmentInput) />
-                {
-                    for (0..self.num_environment_inputs).map(|i| {
-                        html_nested!{
-                            <GeneratedTensorEnvironmentInput
-                                id={i}
-                                value_updated_callback=self.link.callback(|(name, value)| {
-                                    Message::EnvironmentValueUpdated(name, value)
-                                }) />
-                        }
+                <EnvironmentInputs
+                    value_updated_callback=self.link.callback(|(name, value)| {
+                        Message::EnvironmentValueUpdated(name, value)
                     })
-                }
-                <CodeEditor link=&self.code_editor_link, options=Rc::clone(&self.options) />
+                    pre_set_environment={self.example_selected.map(|i| EXAMPLES[i].environment.clone())} />
+                <CodeEditor
+                    link=&self.code_editor_link
+                    options=Rc::clone(&self.options)
+                    />
                 <input type={"button"} value={"run"} onclick=self.link.callback(|_| Message::NewInput) />
                 <br/>
                 <textarea readonly={true}>{self.result_text.clone()}</textarea>
@@ -323,10 +348,20 @@ struct EnvironmentInputs {
 #[derive(Properties, Clone)]
 struct EnvironmentInputsProps {
     /// The callback to the parent, which should be called when any of the
-    /// environment inputs change.
+    /// environment inputs change. This is the *only* way in which this
+    /// component communicates anything about the environment. Messages about
+    /// the environment are in the form of (name, tensor) pairs, saying that the
+    /// tensor with `name` now has value `tensor`. Thus, there is currently no
+    /// way to remove tensors from the environment.
     value_updated_callback: yew::Callback<(String, ArrayD<f64>)>,
-    /// A pre-set environment that this set of inputs should produce.
-    environment: Option<Environment<'static, f64>>,
+    /// A pre-set environment. Currently, the component is just given this for
+    /// display purposes. That is, [`value_updated_callback`] is not called for
+    /// the tensors in the pre-set environment. The creator of this component is
+    /// assumed to put these tensors in their environment manually. In the
+    /// future, we could make it so that [`value_updated_callback`] is called
+    /// right away for each of the tensors in the pre-set environment.
+    #[prop_or_default]
+    pre_set_environment: Option<Environment<'static, f64>>,
 }
 
 enum EnvironmentInputsMessage {
@@ -347,12 +382,16 @@ impl Component for EnvironmentInputs {
 
     fn update(&mut self, msg: EnvironmentInputsMessage) -> ShouldRender {
         match msg {
-            EnvironmentInputsMessage::Add => todo!(),
+            EnvironmentInputsMessage::Add => {
+                self.num_environment_inputs += 1;
+                true
+            }
         }
     }
 
-    fn change(&mut self, _props: Self::Properties) -> ShouldRender {
-        todo!()
+    fn change(&mut self, props: Self::Properties) -> ShouldRender {
+        self.props = props;
+        true
     }
 
     fn view(&self) -> Html {
@@ -363,7 +402,7 @@ impl Component for EnvironmentInputs {
 
                 // Pre-set inputs
                 {
-                    for self.props.environment.as_ref().map(|e| e.iter().map(|(name, value)| {
+                    for self.props.pre_set_environment.as_ref().map(|e| e.iter().map(|(name, value)| {
                         html_nested!{
                             <PreSetInput
                                 name=name.clone()
@@ -414,12 +453,14 @@ impl Component for PreSetInput {
         html! {
             <div>
                 <label for={"name"}>{"Name"}</label>
-                <input name={"name"} type={"text"} value={ &self.0.name } />
+                <input name={"name"} type={"text"} value={ &self.0.name }
+                    disabled={true} />
 
                 // Shape text box
                 <label for={"shape"}>{"Shape"}</label>
                 <input name={"shape"} type={"text"}
-                  value={ format!("({})", self.0.value.shape().iter().map(std::string::ToString::to_string).collect::<Vec<_>>().join(",")) }/>
+                  value={ format!("({})", self.0.value.shape().iter().map(std::string::ToString::to_string).collect::<Vec<_>>().join(",")) }
+                  disabled={true}/>
             </div>
         }
     }
