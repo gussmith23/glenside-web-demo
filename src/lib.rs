@@ -33,9 +33,8 @@ struct Example<'a> {
 lazy_static! {
     static ref CONV: Example<'static> = Example {
         name: "2D Convolution",
-        description: "",
-        glenside_source: r#"
-(access-transpose
+        description: "Two dimensional convolution.",
+        glenside_source: r#"(access-transpose
  (compute dot-product
   (access-cartesian-product
    (access (access-tensor weights) 1)
@@ -77,23 +76,52 @@ lazy_static! {
 }
 
 lazy_static! {
-    static ref EXAMPLES: Vec<&'static Example<'static>> = vec![&CONV];
+    static ref DENSE: Example<'static> = Example {
+        name: "Dense Matrix–Matrix Multiplication",
+        description: r#"In this Glenside example, we use access patterns to compute a dense matrix multiplication.
+        "#,
+        glenside_source: r#"(compute dot-product
+ (access-cartesian-product
+  (access (access-tensor a) 1)
+  (access 
+   (access-transpose
+    (access-tensor b)
+    (list 1 0)) 
+   1)))"#,
+        environment: {
+            let mut env = HashMap::new();
+            env.insert(
+                "b",
+                ArrayD::from_shape_fn(IxDyn(&[3, 4]), |_| {
+                    Uniform::new(-2.0, 2.0).sample(&mut OsRng::new().unwrap())
+                }),
+            );
+            env.insert(
+                "a",
+                ArrayD::from_shape_fn(IxDyn(&[2, 3]), |_| {
+                    Uniform::new(-2.0, 2.0).sample(&mut OsRng::new().unwrap())
+                }),
+            );
+            env
+        },
+    };
+}
+
+lazy_static! {
+    static ref EXAMPLES: Vec<&'static Example<'static>> = vec![&CONV, &DENSE];
 }
 
 enum Message {
     NewInput,
     EnvironmentValueUpdated(String, ArrayD<f64>),
-    AddNewEnvironmentInput,
     ExampleSelected(Option<usize>),
 }
 
 struct App {
-    options: Rc<CodeEditorOptions>,
     link: ComponentLink<Self>,
     code_editor_link: CodeEditorLink,
     result_text: String,
     environment: Environment<'static, f64>,
-    num_environment_inputs: usize,
     /// Stores whatever the user has typed into the editor. Used when switching
     /// back and forth between examples, so we can save/restore whatever the
     /// user has typed.
@@ -102,7 +130,6 @@ struct App {
     /// back and forth between examples, so that we can save/restore the user's
     /// environment.
     user_environment_state: Environment<'static, f64>,
-    pre_set_environment: Option<Environment<'static, f64>>,
     example_selected: Option<usize>,
 }
 impl Component for App {
@@ -111,25 +138,18 @@ impl Component for App {
 
     fn create(_props: Self::Properties, link: ComponentLink<Self>) -> Self {
         Self {
-            options: Rc::new(get_options()),
             link: link,
             code_editor_link: CodeEditorLink::default(),
             result_text: String::default(),
             environment: Environment::default(),
-            num_environment_inputs: 0,
             user_editor_state: String::default(),
             user_environment_state: Environment::default(),
-            pre_set_environment: None,
             example_selected: None,
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Message::AddNewEnvironmentInput => {
-                self.num_environment_inputs += 1;
-                true
-            }
             Message::EnvironmentValueUpdated(name, value) => {
                 let name = Box::leak(name.into_boxed_str());
                 self.user_environment_state.insert(name, value.clone());
@@ -196,13 +216,8 @@ impl Component for App {
             Message::ExampleSelected(None) => {
                 self.example_selected = None;
 
-                // Restore previous input
-                self.options = Rc::new(get_options().with_value(self.user_editor_state.clone()));
-
                 // Restore previous environment
                 self.environment = self.user_environment_state.clone();
-
-                self.pre_set_environment = None;
 
                 true
             }
@@ -215,15 +230,8 @@ impl Component for App {
                     .with_editor(|editor| editor.get_model().unwrap().get_value())
                     .unwrap();
 
-                // Initialize with EXAMPLE[i] Glenside source code
-                self.options =
-                    Rc::new(get_options().with_value(EXAMPLES[i].glenside_source.to_string()));
-
                 // Take the environment from EXAMPLE[i]
                 self.environment = EXAMPLES[i].environment.clone();
-
-                // TODO(@gussmith23) This is super clunky, so much duplicated state.
-                self.pre_set_environment = Some(EXAMPLES[i].environment.clone());
 
                 true
             }
@@ -238,6 +246,10 @@ impl Component for App {
         html! {
             <div>
                 <ExampleChooser example_chosen_callback=self.link.callback(|i| Message::ExampleSelected(i)) />
+                {
+                    self.example_selected.map(|i| EXAMPLES[i].description).unwrap_or_default()
+                }
+                <br/>
                 <EnvironmentInputs
                     value_updated_callback=self.link.callback(|(name, value)| {
                         Message::EnvironmentValueUpdated(name, value)
@@ -245,7 +257,8 @@ impl Component for App {
                     pre_set_environment={self.example_selected.map(|i| EXAMPLES[i].environment.clone())} />
                 <CodeEditor
                     link=&self.code_editor_link
-                    options=Rc::clone(&self.options)
+                    options=Rc::new(get_options().with_value(
+                            self.example_selected.map(|i| EXAMPLES[i].glenside_source.to_string()).unwrap_or(self.user_editor_state.clone())))
                     />
                 <input type={"button"} value={"run"} onclick=self.link.callback(|_| Message::NewInput) />
                 <br/>
