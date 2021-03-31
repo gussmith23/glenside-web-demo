@@ -31,6 +31,67 @@ struct Example<'a> {
 }
 
 lazy_static! {
+    static ref TENSOR: Example<'static> = Example {
+        name: "A single tensor",
+        description: "Tensors are first-class citizens in Glenside. Currently, tensors are defined simply by their shape.",
+        glenside_source: "t",
+        environment: {
+            let mut env = HashMap::new();
+            env.insert(
+                "t",
+                ArrayD::from_shape_fn(IxDyn(&[2,3]), |_| {
+                    Uniform::new(-2.0, 2.0).sample(&mut OsRng::new().unwrap())
+                }),
+            );
+            env
+        },
+    };
+}
+
+lazy_static! {
+    static ref ACCESS_PATTERN_0: Example<'static> = Example {
+        name: "Our first access pattern",
+        description: "Access patterns are the fundamental data structure in Glenside.
+They represent different ways we might view or access a tensor while performing computation.
+We construct access patterns with the \"access-tensor\" operator.
+Note that the result has shape \"((), (2, 3))\", which is very similar to our input tensor's shape!
+The first tuple in the access pattern's shape describes the overall shape of the thing being accessed—in this case, (), or a scalar/singleton shape.
+The second tuple in the access pattern's shape describes the shape of each subview being accessed—in this case, (2, 3).
+Thus, this access pattern conveys that we are viewing our (2, 3) tensor as a series of subviews of shape (2, 3), of which there are only one.",
+        glenside_source: "(access-tensor t)",
+        environment: {
+            let mut env = HashMap::new();
+            env.insert(
+                "t",
+                ArrayD::from_shape_fn(IxDyn(&[2, 3]), |_| {
+                    Uniform::new(-2.0, 2.0).sample(&mut OsRng::new().unwrap())
+                }),
+            );
+            env
+        },
+    };
+}
+
+lazy_static! {
+    static ref ACCESS_PATTERN_1: Example<'static> = Example {
+        name: "Accessing at dimension 1",
+        description: "Using the \"access\" operator, we can re-access our access pattern at another dimension.
+",
+        glenside_source: "(access (access-tensor t) 1)",
+        environment: {
+            let mut env = HashMap::new();
+            env.insert(
+                "t",
+                ArrayD::from_shape_fn(IxDyn(&[2, 3]), |_| {
+                    Uniform::new(-2.0, 2.0).sample(&mut OsRng::new().unwrap())
+                }),
+            );
+            env
+        },
+    };
+}
+
+lazy_static! {
     static ref CONV: Example<'static> = Example {
         name: "2D Convolution",
         description: "Two dimensional convolution.",
@@ -108,7 +169,8 @@ lazy_static! {
 }
 
 lazy_static! {
-    static ref EXAMPLES: Vec<&'static Example<'static>> = vec![&CONV, &DENSE];
+    static ref EXAMPLES: Vec<&'static Example<'static>> =
+        vec![&TENSOR, &ACCESS_PATTERN_0, &ACCESS_PATTERN_1, &CONV, &DENSE];
 }
 
 enum Message {
