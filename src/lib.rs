@@ -168,12 +168,12 @@ impl Component for App {
                 );
 
                 let text_output = match result {
-                    glenside::language::interpreter::Value::Tensor(t) => t.to_string(),
+                    glenside::language::interpreter::Value::Tensor(t) => format!("{:.2}", t),
                     glenside::language::interpreter::Value::Access(a) => {
                         format!(
                             "shape: (({a}), ({b}))\n\
                              value:\n\
-                             {tensor}",
+                             {tensor:.2}",
                             a = a.tensor.shape()[..a.access_axis]
                                 .iter()
                                 .map(|i| i.to_string())
@@ -184,7 +184,7 @@ impl Component for App {
                                 .map(|i| i.to_string())
                                 .collect::<Vec<_>>()
                                 .join(", "),
-                            tensor = a.tensor.to_string()
+                            tensor = a.tensor
                         )
                     }
                     glenside::language::interpreter::Value::Usize(_) => todo!(),
