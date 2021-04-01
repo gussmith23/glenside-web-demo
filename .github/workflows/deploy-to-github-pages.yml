@@ -28,3 +28,26 @@ jobs:
         with:
           branch: gh-pages # The branch the action should deploy to.
           folder: static # The folder the action should deploy.
+
+  run-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install latest nightly
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: nightly
+            default: true
+            
+      - name: Run tests
+        run: cargo test
+
+  check-formatting:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Check formatting
+      run: cargo fmt -- --check
