@@ -1,0 +1,15 @@
+name: Check Formatting
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  check-formatting:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Check formatting
+      run: cargo fmt -- --check
