@@ -75,9 +75,29 @@ Thus, this access pattern conveys that we are viewing our (2, 3) tensor as a ser
 lazy_static! {
     static ref ACCESS_PATTERN_1: Example<'static> = Example {
         name: "Accessing at dimension 1",
-        description: "Using the \"access\" operator, we can re-access our access pattern at another dimension.
-",
+        description: "Using the \"access\" operator, we can re-access our access pattern at dimension index 1,
+        which results in an access  resulting shape of \"((2), (3))\".
+        With this access pattern, we are viewing the tensor t as a list/vector
+        of length 2, whose items are vectors of length 3.",
         glenside_source: "(access (access-tensor t) 1)",
+        environment: {
+            let mut env = HashMap::new();
+            env.insert(
+                "t",
+                ArrayD::from_shape_fn(IxDyn(&[2, 3]), |_| {
+                    Uniform::new(-2.0, 2.0).sample(&mut OsRng::new().unwrap())
+                }),
+            );
+            env
+        },
+    };
+}
+
+lazy_static! {
+    static ref COMPUTING_OVER_ACCESS_PATTERNS_0: Example<'static> = Example {
+        name: "Computing over Access Patterns",
+        description: "",
+        glenside_source: "(compute reduce-sum (access (access-tensor t) 1))",
         environment: {
             let mut env = HashMap::new();
             env.insert(
@@ -169,8 +189,14 @@ lazy_static! {
 }
 
 lazy_static! {
-    static ref EXAMPLES: Vec<&'static Example<'static>> =
-        vec![&TENSOR, &ACCESS_PATTERN_0, &ACCESS_PATTERN_1, &CONV, &DENSE];
+    static ref EXAMPLES: Vec<&'static Example<'static>> = vec![
+        &TENSOR,
+        &ACCESS_PATTERN_0,
+        &ACCESS_PATTERN_1,
+        &COMPUTING_OVER_ACCESS_PATTERNS_0,
+        &CONV,
+        &DENSE
+    ];
 }
 
 enum Message {
