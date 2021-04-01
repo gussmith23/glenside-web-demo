@@ -732,3 +732,17 @@ pub fn start_app() {
     wasm_logger::init(wasm_logger::Config::default());
     yew::start_app::<App>();
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn run_all_examples() {
+        for example in EXAMPLES.iter() {
+            glenside::language::interpreter::interpret_from_str::<f64>(
+                example.glenside_source,
+                &example.environment,
+            );
+        }
+    }
+}
