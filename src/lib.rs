@@ -15,7 +15,7 @@ use rand::{
 use std::collections::HashMap;
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
-use yew::{html, html_nested, Component, ComponentLink, Html, InputData, Properties, ShouldRender};
+use yew::{html, html_nested, ChangeData, Component, ComponentLink, Html, InputData, Properties, ShouldRender};
 
 fn get_options() -> CodeEditorOptions {
     CodeEditorOptions::default()
@@ -164,10 +164,10 @@ lazy_static! {
         glenside_source: r#"(compute dot-product
  (access-cartesian-product
   (access (access-tensor a) 1)
-  (access 
+  (access
    (access-transpose
     (access-tensor b)
-    (list 1 0)) 
+    (list 1 0))
    1)))"#,
         environment: {
             let mut env = HashMap::new();
@@ -332,17 +332,8 @@ impl Component for App {
 
     fn view(&self) -> Html {
         html! {
-            <div>
-                <ExampleChooser example_chosen_callback=self.link.callback(|i| Message::ExampleSelected(i)) />
-                {
-                    self.example_selected.map(|i| EXAMPLES[i].description).unwrap_or_default()
-                }
-                <br/>
-                <EnvironmentInputs
-                    value_updated_callback=self.link.callback(|(name, value)| {
-                        Message::EnvironmentValueUpdated(name, value)
-                    })
-                    pre_set_environment={self.example_selected.map(|i| EXAMPLES[i].environment.clone())} />
+            <div class={"row"}>
+                <div class={"column"}>
                 <CodeEditor
                     link=&self.code_editor_link
                     options=Rc::new(get_options().with_value(
@@ -351,6 +342,18 @@ impl Component for App {
                 <input type={"button"} value={"run"} onclick=self.link.callback(|_| Message::NewInput) />
                 <br/>
                 <textarea readonly={true}>{self.result_text.clone()}</textarea>
+                </div>
+                <div class={"column"}>
+                <ExampleChooser example_chosen_callback=self.link.callback(|i| Message::ExampleSelected(i)) />
+                <div class="example-text">
+                  { self.example_selected.map(|i| EXAMPLES[i].description).unwrap_or_default() }
+                </div>
+                <EnvironmentInputs
+                    value_updated_callback=self.link.callback(|(name, value)| {
+                        Message::EnvironmentValueUpdated(name, value)
+                    })
+                    pre_set_environment={self.example_selected.map(|i| EXAMPLES[i].environment.clone())} />
+                </div>
             </div>
         }
     }
@@ -405,36 +408,42 @@ impl Component for ExampleChooser {
     fn view(&self) -> Html {
         html! {
             <div>
-            {"Choose an example:"}
-
-            <input type={"radio"}
+            <label for={"example-chooser"}>{"Example: "}</label>
+            <select name={"example-chooser"}
+                onchange=self.link.callback(move |ev: ChangeData| {
+                    if let ChangeData::Select(s) = ev {
+                        let i = s.selected_index() as usize;
+                        ExampleChooserMessage::Chosen(i.checked_sub(1))
+                    } else {
+                        unreachable!()
+                    }
+                })>
+            <option
                 id={"no-example"}
                 name={"example-chooser"}
-                checked={self.selected_example_index.is_none()}
+                selected={self.selected_example_index.is_none()}
                 oninput=self.link.callback(move |_| ExampleChooserMessage::Chosen(None))
-            />
-            <label for={"no-example"}>{"none"}</label>
+            >{"no example"}</option>
 
             {
                 for EXAMPLES.iter().enumerate().map(|(i, example)| {
                     html_nested ! {
                         <>
-                        <input type={"radio"}
+                        <option
                             id={format!("example-radio-button-{}", i)}
                             name={"example-chooser"}
-                            checked={self.selected_example_index==Some(i)}
+                            selected={self.selected_example_index==Some(i)}
                             oninput=self.link.callback(move |_| ExampleChooserMessage::Chosen(Some(i)))
-                            />
-                        <label
-                            for={format!("example-radio-button-{}", i)}>
+                            >
                             {example.name}
-                        </label>
+                        </option>
                         </>
                     }
                 })
             }
 
 
+            </select>
             </div>
         }
     }
@@ -691,8 +700,8 @@ impl Component for GeneratedTensorEnvironmentInput {
                     |event: InputData| GeneratedTensorEnvironmentInputMessage::UpdateName(event.value)) />
 
                 // Shape text box
-                <label for={"shape"}>{"Shape (e.g. () or (3,32,32))"}</label>
-                <input name={"shape"} type={"text"}
+                <label for={"shape"}>{"Shape"}</label>
+                <input name={"shape"} type={"text"} placeholder={"e.g. () or (3,32,32)"}
                     oninput=self.link.callback(|event: InputData| {
                         GeneratedTensorEnvironmentInputMessage::UpdateShapeString(event.value)
                     })
