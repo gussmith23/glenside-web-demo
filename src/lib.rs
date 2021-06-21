@@ -163,6 +163,30 @@ lazy_static! {
     static ref DENSE: Example<'static> = Example {
         name: "Dense Matrix–Matrix Multiplication",
         description: r#"In this Glenside example, we use access patterns to compute a dense matrix multiplication.
+We begin by first accessing the tensor a as a list of its rows, by converting it into an access pattern
+  and accessing it at dimension 1.
+This produces a view over tensor a, in which we view it as a vector of length 2
+  of vectors of length 3: that is, an access pattern of shape ((2), (3)).
+We do the same with tensor b,
+  but we use the transpose operator
+  to access it as a list of its columns,
+  rather than as a list of its rows,
+  thus giving an access pattern of shape
+  ((4), (3)).
+Next, we pair each row of a
+  with each column of b
+  using the cartesian product operator,
+  which produces an access pattern
+  of shape
+  ((2, 4), (2, 3)),
+  or a (2, 4)-shaped matrix
+  of pairs of 3-length vectors
+  (a row from a paired with a column from b).
+Finally,
+  we map the dot product operator
+  over each row-column pair,
+  producing the final matrix
+  of shape (2, 4).
         "#,
         glenside_source: r#"(compute dot-product
  (access-cartesian-product
@@ -197,8 +221,8 @@ lazy_static! {
         &ACCESS_PATTERN_0,
         &ACCESS_PATTERN_1,
         &COMPUTING_OVER_ACCESS_PATTERNS_0,
+        &DENSE,
         &CONV,
-        &DENSE
     ];
 }
 
