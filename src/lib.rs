@@ -253,6 +253,12 @@ impl Component for App {
                     .with_editor(|editor| editor.get_model().unwrap().get_value())
                     .unwrap();
 
+                // Quickly handle the case where there's no program specified.
+                // TODO we don't need this if we can handle parsing errors.
+                if text_input.is_empty() {
+                    return false;
+                }
+
                 let result = glenside::language::interpreter::interpret_from_str::<f64>(
                     &text_input,
                     &self.environment,
