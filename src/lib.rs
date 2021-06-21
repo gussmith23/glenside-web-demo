@@ -344,15 +344,22 @@ impl Component for App {
                     options=Rc::new(get_options().with_value(
                             self.example_selected.map(|i| EXAMPLES[i].glenside_source.to_string()).unwrap_or(self.user_editor_state.clone())))
                     />
+                <br/>
                 <input type={"button"} value={"run"} onclick=self.link.callback(|_| Message::NewInput) />
                 <br/>
-                <textarea readonly={true}>{self.result_text.clone()}</textarea>
+                <br/>
+                <textarea
+                    style={"width:500px; height:100px"}
+                    readonly={true}>
+                    {self.result_text.clone()}</textarea>
                 </div>
                 <div class={"column"}>
                 <ExampleChooser example_chosen_callback=self.link.callback(|i| Message::ExampleSelected(i)) />
+                <br/>
                 <div class="example-text">
                   { self.example_selected.map(|i| EXAMPLES[i].description).unwrap_or_default() }
                 </div>
+                <br/>
                 <EnvironmentInputs
                     value_updated_callback=self.link.callback(|(name, value)| {
                         Message::EnvironmentValueUpdated(name, value)
