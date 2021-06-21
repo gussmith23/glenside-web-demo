@@ -335,6 +335,8 @@ impl Component for App {
 
     fn view(&self) -> Html {
         html! {
+            <>
+            <h1>{"Glenside Web Demo"}</h1>
             <div class={"row"}>
                 <div class={"column"}>
                 <CodeEditor
@@ -358,6 +360,7 @@ impl Component for App {
                     pre_set_environment={self.example_selected.map(|i| EXAMPLES[i].environment.clone())} />
                 </div>
             </div>
+            </>
         }
     }
 }
