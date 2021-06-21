@@ -259,11 +259,24 @@ impl Component for App {
                 );
 
                 let text_output = match result {
-                    glenside::language::interpreter::Value::Tensor(t) => format!("{:.2}", t),
+                    glenside::language::interpreter::Value::Tensor(t) => {
+                        format!(
+                            "tensor with shape:\n\
+                             ({})\n\
+                             and value:\n\
+                             {:.2}",
+                            t.shape()
+                                .iter()
+                                .map(ToString::to_string)
+                                .collect::<Vec<_>>()
+                                .join(", "),
+                            t
+                        )
+                    }
                     glenside::language::interpreter::Value::Access(a) => {
                         format!(
-                            "shape: (({a}), ({b}))\n\
-                             value:\n\
+                            "access pattern with shape:\n(({a}), ({b}))\n\
+                             and value:\n\
                              {tensor:.2}",
                             a = a.tensor.shape()[..a.access_axis]
                                 .iter()
@@ -284,7 +297,8 @@ impl Component for App {
                     glenside::language::interpreter::Value::PadType(_) => todo!(),
                     glenside::language::interpreter::Value::AccessShape(shape, access_axis) => {
                         format!(
-                            "(({a}), ({b}))",
+                            "access pattern shape literal with value:
+                             (({a}), ({b}))",
                             a = shape.slice()[..access_axis]
                                 .iter()
                                 .map(|i| i.to_string())
