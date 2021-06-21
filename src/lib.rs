@@ -15,7 +15,10 @@ use rand::{
 use std::collections::HashMap;
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
-use yew::{html, html_nested, ChangeData, Component, ComponentLink, Html, InputData, Properties, ShouldRender};
+use yew::{
+    html, html_nested, ChangeData, Component, ComponentLink, Html, InputData, Properties,
+    ShouldRender,
+};
 
 fn get_options() -> CodeEditorOptions {
     CodeEditorOptions::default()
