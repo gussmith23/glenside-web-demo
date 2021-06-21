@@ -359,7 +359,7 @@ impl Component for App {
                             self.example_selected.map(|i| EXAMPLES[i].glenside_source.to_string()).unwrap_or(self.user_editor_state.clone())))
                     />
                 <br/>
-                <input type={"button"} value={"run"} onclick=self.link.callback(|_| Message::NewInput) />
+                <input type={"button"} value={"interpret Glenside expression"} onclick=self.link.callback(|_| Message::NewInput) />
                 <br/>
                 <br/>
                 <textarea
