@@ -357,6 +357,21 @@ impl Component for App {
         html! {
             <>
             <h1>{"Glenside Web Demo"}</h1>
+            <div class={"description"}>
+            <p><a href={"https://github.com/gussmith23/glenside"}>{"Glenside"}</a>
+               {" is a pure, low-level tensor program representation \
+                 for optimizing tensor programs via program rewriting \
+                 frameworks such as "}
+                <a href={"https://egraphs-good.github.io/"}>{"egg"}</a>{"."}</p>
+               {"This web demo presents some basic examples of Glenside \
+                 programs. First, make a selection from the \"Example:\" \
+                 dropdown. This populates the editor with the selected \
+                 Glenside expression, and populates the environment with \
+                 name-value pairs. Then, press \"interpret \
+                 Glenside expression\" to evaluate the expression, and view \
+                 the result in the text box below."}
+            </div>
+            <br/>
             <div class={"row"}>
                 <div class={"column"}>
                 <CodeEditor
