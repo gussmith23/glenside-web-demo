@@ -387,13 +387,16 @@ impl Component for App {
                  for optimizing tensor programs via program rewriting \
                  frameworks such as "}
                 <a href={"https://egraphs-good.github.io/"}>{"egg"}</a>{"."}</p>
-               {"This web demo presents some basic examples of Glenside \
+            <p>{"This web demo presents some basic examples of Glenside \
                  programs. First, make a selection from the \"Example:\" \
                  dropdown. This populates the editor with the selected \
                  Glenside expression, and populates the environment with \
                  name-value pairs. Then, press \"interpret \
                  Glenside expression\" to evaluate the expression, and view \
-                 the result in the text box below."}
+                 the result in the text box below."}</p>
+            <p>{"All examples are editable, allowing you to write your own expressions. \
+                 You can add new tensor variables into the environment using \
+                 the \"+\" button."}</p>
             </div>
             <br/>
             <div class={"row"}>
